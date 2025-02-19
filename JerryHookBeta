@@ -1,1 +1,364 @@
-print("hi")
+local engine = loadstring(game:HttpGet("https://raw.githubusercontent.com/Singularity5490/rbimgui-2/main/rbimgui-2.lua"))()
+
+local window1 = engine.new({
+    text = "JerryHook by david53001",
+    size = UDim2.new(300, 200),
+})
+window1.open()
+
+---------------------------------------------------
+-- Create Tabs
+---------------------------------------------------
+
+local actionsTab = window1.new({
+    text = "Actions",
+})
+
+-- Other Tab (for extra features like ESP)
+local otherTab = window1.new({
+    text = "Other",
+})
+
+---------------------------------------------------
+-- Actions Tab Content (Your Original Code)
+---------------------------------------------------
+
+local label1 = actionsTab.new("label", {
+    text = "C4 Control Options",
+    color = Color3.new(1, 0, 0),
+})
+
+local selectedPlayerDropdown = actionsTab.new("dropdown", {
+    text = "Select Target Player",
+})
+
+for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+    selectedPlayerDropdown.new(player.Name)
+end
+
+game:GetService("Players").PlayerAdded:Connect(function(player)
+    selectedPlayerDropdown.new(player.Name)
+end)
+
+local selectedTargetName = nil
+
+selectedPlayerDropdown.event:Connect(function(selectedName)
+    selectedTargetName = selectedName
+    print("Dropdown selected:", selectedName)
+end)
+
+local function getTargetPlayer()
+    local playerName = selectedTargetName
+    if not playerName then
+        print("No player selected!")
+        return nil
+    end
+    local player = game:GetService("Players"):FindFirstChild(playerName)
+    if player and player.Character then
+        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then
+            print("HumanoidRootPart not found!")
+        end
+        return hrp
+    else
+        print("Player not found or character not loaded!")
+        return nil
+    end
+end
+
+---------------------------------------------------
+-- Kill Player Button
+---------------------------------------------------
+local killButton = actionsTab.new("button", {
+    text = "Kill Player",
+})
+killButton.event:Connect(function()
+    local target = getTargetPlayer()
+    if not target then return end
+
+    local player = game:GetService("Players").LocalPlayer
+    local c4Folder = player:FindFirstChild("Folder")
+
+    if c4Folder then
+        local c4 = c4Folder:FindFirstChild("C4")
+        if c4 then
+            local equipRemote = c4:FindFirstChild("InventoryEquipRemote")
+            if equipRemote then
+                equipRemote:FireServer(true)
+                print("C4 equipped!")
+                task.wait(0.5)
+                
+                -- Execute Kill Script
+                local attached = 0
+                local lastc4 = nil
+                for _, instance in pairs(game:GetService("Workspace"):GetChildren()) do
+                    if instance.Name == "C4" and instance:FindFirstChild("Stuck") and instance.Stuck.Value == false then
+                        attached = attached + 1
+                        local args
+                        if attached == 1 then
+                            args = {
+                                [1] = target,
+                                [2] = CFrame.new(55, 0, 0)
+                            }
+                        else
+                            args = {
+                                [1] = lastc4.PrimaryPart,
+                                [2] = CFrame.new(55, 0, 0)
+                            }
+                        end
+                        print("Attaching to:", args[1].Name)
+                        instance:WaitForChild("StickRemote"):FireServer(unpack(args))
+                        instance.PrimaryPart.Anchored = false
+                        lastc4 = instance
+                    end
+                end
+                task.wait(0.5)
+                equipRemote:FireServer(false)
+                print("C4 unequipped!")
+            end
+        end
+    end
+end)
+
+---------------------------------------------------
+-- Freeze Player Button
+---------------------------------------------------
+local freezeButton = actionsTab.new("button", {
+    text = "Freeze Player",
+})
+freezeButton.event:Connect(function()
+    local target = getTargetPlayer()
+    if not target then return end
+
+    local player = game:GetService("Players").LocalPlayer
+    local c4Folder = player:FindFirstChild("Folder")
+
+    if c4Folder then
+        local c4 = c4Folder:FindFirstChild("C4")
+        if c4 then
+            local equipRemote = c4:FindFirstChild("InventoryEquipRemote")
+            if equipRemote then
+                equipRemote:FireServer(true)
+                print("C4 equipped!")
+                task.wait(0.5)
+                
+                -- Execute Freeze Script
+                local attached = 0
+                local lastc4 = nil
+                for _, instance in pairs(game:GetService("Workspace"):GetChildren()) do
+                    if instance.Name == "C4" and instance:FindFirstChild("Stuck") and instance.Stuck.Value == false then
+                        attached = attached + 1
+                        local args
+                        if attached == 1 then
+                            args = {
+                                [1] = target,
+                                [2] = CFrame.new(0, 3, 0)
+                            }
+                        else
+                            args = {
+                                [1] = lastc4.PrimaryPart,
+                                [2] = CFrame.new(0, 3, 0)
+                            }
+                        end
+                        print("Attaching to:", args[1].Name)
+                        instance:WaitForChild("StickRemote"):FireServer(unpack(args))
+                        instance.PrimaryPart.Anchored = false
+                        lastc4 = instance
+                    end
+                end
+                task.wait(0.5)
+                equipRemote:FireServer(false)
+                print("C4 unequipped!")
+            end
+        end
+    end
+end)
+
+---------------------------------------------------
+-- Detonate All C4s Button 
+---------------------------------------------------
+local detonateButton = actionsTab.new("button", {
+    text = "Detonate All C4s",
+})
+detonateButton.event:Connect(function()
+    local localPlayer = game:GetService("Players").LocalPlayer
+    local userId = localPlayer.UserId
+
+    for _, v in pairs(game:GetService("Workspace"):GetChildren()) do
+        if v.Name == "C4" then
+            if v:FindFirstChild("CreatorId") and v.CreatorId.Value == userId then
+                v:WaitForChild("DetonateRemote"):FireServer()
+            end
+        end
+    end
+    print("All C4s detonated!")
+end)
+
+---------------------------------------------------
+-- Spectate Button
+---------------------------------------------------
+local spectateButton = actionsTab.new("button", {
+    text = "Spectate Player",
+})
+spectateButton.event:Connect(function()
+    local playerName = selectedTargetName
+    if not playerName then
+        print("No player selected for spectating!")
+        return
+    end
+
+    local targetPlayer = game:GetService("Players"):FindFirstChild(playerName)
+    if targetPlayer and targetPlayer.Character then
+        local humanoid = targetPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            workspace.CurrentCamera.CameraSubject = humanoid
+            print("Now spectating:", playerName)
+        else
+            print("Humanoid not found in target player's character!")
+        end
+    else
+        print("Player not found or character not loaded!")
+    end
+end)
+
+---------------------------------------------------
+-- Other Tab Content (for ESP)
+---------------------------------------------------
+
+local function createESPForPlayer(plr)
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = plr.Character.HumanoidRootPart
+        -- Avoid duplicating ESP
+        if hrp:FindFirstChild("ESPLabel") then return end
+
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESPLabel"
+        billboard.Adornee = hrp
+        billboard.AlwaysOnTop = true
+        billboard.Size = UDim2.new(0, 100, 0, 30)
+        billboard.StudsOffset = Vector3.new(0, 2, 0)
+        
+        local textLabel = Instance.new("TextLabel", billboard)
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.Text = plr.Name
+        textLabel.TextScaled = false  -- Disable scaling for a fixed size
+        textLabel.TextSize = 12       -- Smaller text size
+        -- Set text color based on team:
+        if plr.Team and plr.Team.Name == "Police" then
+            textLabel.TextColor3 = Color3.new(0, 0, 1)  -- Blue for police
+        elseif plr.Team and plr.Team.Name == "Criminals" then
+            textLabel.TextColor3 = Color3.new(1, 0, 0)  -- Red for criminals
+        else
+            textLabel.TextColor3 = Color3.new(1, 1, 1)  -- Default white
+        end
+
+        billboard.Parent = hrp
+    end
+end
+
+local function removeESPForPlayer(plr)
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = plr.Character.HumanoidRootPart
+        local esp = hrp:FindFirstChild("ESPLabel")
+        if esp then
+            esp:Destroy()
+        end
+    end
+end
+
+local function enableESP()
+    for _, plr in pairs(game:GetService("Players"):GetPlayers()) do
+        if plr ~= game:GetService("Players").LocalPlayer then
+            createESPForPlayer(plr)
+            plr.CharacterAdded:Connect(function(character)
+                wait(1)
+                createESPForPlayer(plr)
+            end)
+        end
+    end
+end
+
+local function disableESP()
+    for _, plr in pairs(game:GetService("Players"):GetPlayers()) do
+        removeESPForPlayer(plr)
+    end
+end
+
+local espSwitch = otherTab.new("switch", {
+    text = "Enable ESP",
+})
+espSwitch.set(false)
+espSwitch.event:Connect(function(enabled)
+    if enabled then
+        print("ESP Enabled")
+        enableESP()
+    else
+        print("ESP Disabled")
+        disableESP()
+    end
+end)
+
+-- Your Original Script Stays the Same Here...
+
+---------------------------------------------------
+-- Speed Boost Toggle (ADDED AT THE END)
+---------------------------------------------------
+
+local speedBoostEnabled = false  -- Default is OFF
+
+local speedSwitch = otherTab.new("switch", {
+    text = "Toggle Speed Boost",
+})
+speedSwitch.set(false)
+
+speedSwitch.event:Connect(function(enabled)
+    speedBoostEnabled = enabled
+    if speedBoostEnabled then
+        print("Speed Boost Enabled")
+    else
+        print("Speed Boost Disabled")
+    end
+end)
+
+---------------------------------------------------
+-- Movement System (Uses Toggle Switch)
+---------------------------------------------------
+
+local players = game:GetService("Players")
+local userInput = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+local player = players.LocalPlayer
+local isMoving = false  -- Track movement state
+
+local function startMoving()
+    if isMoving or not speedBoostEnabled then return end  -- Prevent multiple loops
+    isMoving = true
+    local character = player.Character
+    local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+
+    if rootPart then
+        while isMoving and speedBoostEnabled do
+            rootPart.CFrame = rootPart.CFrame * CFrame.new(0, 0, -1)
+            runService.RenderStepped:Wait()  -- Smooth frame-based movement
+        end
+    end
+end
+
+local function stopMoving()
+    isMoving = false  -- Stop movement when W is released
+end
+
+-- Movement control only works if speed boost is toggled ON
+userInput.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.W and not gameProcessed and speedBoostEnabled then
+        startMoving()
+    end
+end)
+
+userInput.InputEnded:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.W and not gameProcessed then
+        stopMoving()
+    end
+end)
